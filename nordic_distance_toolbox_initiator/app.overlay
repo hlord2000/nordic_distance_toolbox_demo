@@ -7,7 +7,6 @@
 / {
 	/* The timer instance to use. */
 	chosen {
-        zephyr,display = &ssd1306fb;
 		ncs,dm-timer = &timer2;
 	};
 
@@ -23,19 +22,9 @@
 			label = "DM Add request Pin";
 		};
 	};
+
 };
 
 &i2c0 {
-	status = "okay";
-	ssd1306fb: ssd1306fb@3c {
-		compatible = "solomon,ssd1306fb";
-		segment-offset = <0>;
-		page-offset = <0>;
-		display-offset = <0>;
-		multiplex-ratio = <63>;
-		prechargep = <0>;
-		height = <0>;
-		width = <0>;
-		reg = < 0x0 >;
-	};
+	zephyr,concat-buf-size = <1024>;	
 };

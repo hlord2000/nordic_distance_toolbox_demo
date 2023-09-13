@@ -1,13 +1,17 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/zbus/zbus.h>
 
 #include <zephyr/bluetooth/bluetooth.h>
 
 #include <dm.h>
 
 #include <scan.h>
+#include <messages.h>
 
 LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
+
+ZBUS_CHAN_DECLARE(dm_chan);
 
 void data_ready(struct dm_result *result)
 {
@@ -20,6 +24,10 @@ void data_ready(struct dm_result *result)
 
 	bt_addr_le_to_str(&result->bt_addr, addr, sizeof(addr));
 
+	struct dm_data dm_data = {0};
+	dm_data.distance = result->dist_estimates.mcpd.best;
+	memcpy(dm_data.addr, addr, sizeof(addr));
+
 	LOG_INF("\nMeasurement result:\n");
 	LOG_INF("\tAddr: %s\n", addr);
 	LOG_INF("\tQuality: %s\n", quality[result->quality]);
@@ -30,6 +38,7 @@ void data_ready(struct dm_result *result)
 		result->dist_estimates.mcpd.phase_slope,
 		result->dist_estimates.mcpd.rssi_openspace,
 		result->dist_estimates.mcpd.best);
+	zbus_chan_pub(&dm_chan, &dm_data, K_MSEC(500));
 }
 
 static struct dm_cb dm_cb = {
@@ -63,8 +72,8 @@ int main(void)
 	LOG_INF("Distance measurement initialized\n");
 
 	while (true) {
-		LOG_INF("Keep on truckin...");
-		k_sleep(K_MSEC(1000));
+		//LOG_INF("Keep on truckin...");
+		k_sleep(K_MSEC(5000));
 	}
 
 }

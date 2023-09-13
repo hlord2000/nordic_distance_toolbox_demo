@@ -10,6 +10,7 @@
 
 LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 
+#ifdef CONFIG_BOARD_THINGY53_NRF5340_CPUAPP
 static const struct pwm_dt_spec red_pwm_led =
 	PWM_DT_SPEC_GET(DT_ALIAS(pwm_led0));
 static const struct pwm_dt_spec green_pwm_led =
@@ -35,6 +36,7 @@ void set_led_color(uint32_t rgba_color) {
 	pwm_set_dt(&green_pwm_led, period, green_duty);
 	pwm_set_dt(&blue_pwm_led, period, blue_duty);
 }
+#endif
 
 void data_ready(struct dm_result *result)
 {
@@ -58,8 +60,10 @@ void data_ready(struct dm_result *result)
 		result->dist_estimates.mcpd.rssi_openspace,
 		result->dist_estimates.mcpd.best);
 	// Convert the "best" estimate to a color between 0-255
+#ifdef CONFIG_BOARD_THINGY53_NRF5340_CPUAPP
 	uint8_t color = 255 - ((result->dist_estimates.mcpd.best / 10) * 255);
 	set_led_color((0xFF00FF << 8) | color);
+#endif
 }
 
 
@@ -74,6 +78,7 @@ int main(void)
 	struct dm_init_param init_param;
 	init_param.cb = &dm_cb;
 
+#ifdef CONFIG_BOARD_THINGY53_NRF5340_CPUAPP
 	if (!device_is_ready(red_pwm_led.dev)) {
 		LOG_ERR("Red LED PWM device not ready\n");
 	}
@@ -85,6 +90,7 @@ int main(void)
 	if (!device_is_ready(blue_pwm_led.dev)) {
 		LOG_ERR("Blue LED PWM device not ready\n");
 	}
+#endif
 
 	err = bt_enable(NULL);
 	if (err) {
@@ -103,5 +109,7 @@ int main(void)
 		LOG_ERR("Distance measurement failed to start (err %d)\n", err);
 	}
 	LOG_INF("Distance measurement initialized\n");
+#ifdef CONFIG_BOARD_THINGY53_NRF5340_CPUAPP
 	set_led_color(0x0000FFFF);
+#endif
 }

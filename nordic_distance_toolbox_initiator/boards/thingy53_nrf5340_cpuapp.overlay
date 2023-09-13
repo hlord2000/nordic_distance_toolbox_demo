@@ -68,4 +68,22 @@
 	pinctrl-0 = <&i2c0_default>;
 	pinctrl-1 = <&i2c0_sleep>;
 	pinctrl-names = "default", "sleep";
+	zephyr,concat-buf-size = <1024>;	
+};
+
+&pinctrl {
+    i2c0_default: i2c0_default {
+        group1 {
+            psels = <NRF_PSEL(TWIM_SCL, 0, 4)>,
+                    <NRF_PSEL(TWIM_SDA, 0, 5)>;
+        };
+    };
+
+    i2c0_sleep: i2c0_sleep {
+        group1 {
+            psels = <NRF_PSEL(TWIM_SCL, 0, 4)>,
+                    <NRF_PSEL(TWIM_SDA, 0, 5)>;
+            low-power-enable;
+        };
+    };
 };
