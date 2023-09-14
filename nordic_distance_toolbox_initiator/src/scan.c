@@ -60,8 +60,9 @@ static void scan_filter_match(struct bt_scan_device_info *device_info,
 static void scan_filter_no_match(struct bt_scan_device_info *device_info,
                           bool connectable)
 {
-    // On scan filter not match, we will check the manufacturer data. If it contains the right data, 
-    // we will add a scan filter for the device based on UUID and continue
+    LOG_INF("No filter match for device");
+    // Need to detect if this is a scan response packet, if so and the mfg data matches, create filter
+    // for UUID
 }
 
 BT_SCAN_CB_INIT(scan_cb, scan_filter_match, scan_filter_no_match, NULL, NULL);
@@ -88,8 +89,15 @@ int scan_init(void)
 	bt_scan_init(&scan_init);
 	bt_scan_cb_register(&scan_cb);
 
+#if 1
     struct bt_uuid_128 uuid_128 = BT_UUID_INIT_128(
-        BT_UUID_128_ENCODE(0x65abd3db, 0x1c17, 0x485e, 0xa74c, 0xc180089b4538));  
+        BT_UUID_128_ENCODE(0x65abd3db, 0x1c17, 0x485e, 0xa74c, 0xc180089b4538));
+#endif
+
+#if 0
+    struct bt_uuid_128 uuid_128 = BT_UUID_INIT_128(
+        BT_UUID_128_ENCODE(0x65abd3dc, 0x1c17, 0x485e, 0xa74c, 0xc180089b4560));  
+#endif
 
 	err = bt_scan_filter_add(BT_SCAN_FILTER_TYPE_UUID, &uuid_128);
 	if (err) {
