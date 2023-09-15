@@ -10,6 +10,8 @@
 #include <zephyr/bluetooth/gatt.h>
 #include <bluetooth/gatt_dm.h>
 
+#include <zephyr/random/rand32.h>
+
 #include <dm.h>
 
 LOG_MODULE_REGISTER(advertise, LOG_LEVEL_DBG);
@@ -18,7 +20,7 @@ LOG_MODULE_REGISTER(advertise, LOG_LEVEL_DBG);
 #define DEVICE_NAME_LEN         (sizeof(DEVICE_NAME) - 1)
 
 #define COMPANY_CODE 0x0059
-#define SUPPORT_DM_CODE 0xFF55AA5A
+#define SUPPORT_DM_CODE 0xD157A9CE
 
 static struct bt_le_ext_adv *adv;
 
@@ -71,7 +73,7 @@ static void adv_scanned_cb(struct bt_le_ext_adv *adv, struct bt_le_ext_adv_scann
         * This means that the initiator and the reflector need to set the same value
         * for the random seed.
         */
-    req.rng_seed = 1234;
+    req.rng_seed = mfg_data.rng_seed;
     req.start_delay_us = 0;
     req.extra_window_time_us = 0;
 
@@ -87,7 +89,7 @@ int advertise_init(void) {
     int err;
     mfg_data.company_code = COMPANY_CODE;
     mfg_data.support_dm_code = SUPPORT_DM_CODE;
-    mfg_data.rng_seed = 0x12345678;
+	sys_csrand_get(&mfg_data.rng_seed, sizeof(mfg_data.rng_seed));
 
     struct bt_le_ext_adv_start_param ext_adv_start_param = {0};
 
