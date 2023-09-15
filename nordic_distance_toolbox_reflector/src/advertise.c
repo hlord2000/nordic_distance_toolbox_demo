@@ -16,7 +16,7 @@
 
 LOG_MODULE_REGISTER(advertise, LOG_LEVEL_DBG);
 
-#define DEVICE_NAME             CONFIG_BT_DEVICE_NAME
+#define DEVICE_NAME             "Thingy" 
 #define DEVICE_NAME_LEN         (sizeof(DEVICE_NAME) - 1)
 
 #define COMPANY_CODE 0x0059
@@ -36,8 +36,8 @@ struct bt_le_adv_param adv_param_noconn =
 	BT_LE_ADV_PARAM_INIT(BT_LE_ADV_OPT_USE_IDENTITY |
 			     BT_LE_ADV_OPT_SCANNABLE |
 			     BT_LE_ADV_OPT_NOTIFY_SCAN_REQ,
-                 BT_GAP_ADV_SLOW_INT_MIN,
-                 BT_GAP_ADV_SLOW_INT_MAX,
+				 BT_GAP_ADV_FAST_INT_MIN_1,
+				 BT_GAP_ADV_FAST_INT_MAX_1,
 			     NULL);
 
 
@@ -48,11 +48,11 @@ static const struct bt_data ad[] = {
 	BT_DATA(BT_DATA_NAME_COMPLETE, DEVICE_NAME, DEVICE_NAME_LEN),
 };
 
-#define BT_UUID_NDT BT_UUID_128_ENCODE(0x65abd3db, 0x1c17, 0x485e, 0xa74c, 0xc180089b4538)
+#define BT_UUID_NULL BT_UUID_128_ENCODE(0, 0, 0, 0, 0)
 
-static const struct bt_data sd[] = {
+static struct bt_data sd[] = {
 	BT_DATA(BT_DATA_MANUFACTURER_DATA, (unsigned char *)&mfg_data, sizeof(mfg_data)),
-	BT_DATA_BYTES(BT_DATA_UUID128_ALL, BT_UUID_NDT),
+	BT_DATA_BYTES(BT_DATA_UUID128_ALL, BT_UUID_NULL),
 };
 
 
@@ -75,7 +75,7 @@ static void adv_scanned_cb(struct bt_le_ext_adv *adv, struct bt_le_ext_adv_scann
         */
     req.rng_seed = mfg_data.rng_seed;
     req.start_delay_us = 0;
-    req.extra_window_time_us = 0;
+    req.extra_window_time_us = 250;
 
     dm_request_add(&req);
 }
@@ -87,6 +87,14 @@ const static struct bt_le_ext_adv_cb adv_cb = {
 
 int advertise_init(void) {
     int err;
+
+	int uuid[16] = {0};
+	sys_csrand_get(uuid, 16);
+
+	sd[1].data = uuid;
+	sd[1].data_len = 16;
+	sd[1].type = BT_DATA_UUID128_ALL;
+
     mfg_data.company_code = COMPANY_CODE;
     mfg_data.support_dm_code = SUPPORT_DM_CODE;
 	sys_csrand_get(&mfg_data.rng_seed, sizeof(mfg_data.rng_seed));

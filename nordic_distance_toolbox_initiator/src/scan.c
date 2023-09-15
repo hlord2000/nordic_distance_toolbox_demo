@@ -1,7 +1,6 @@
 // Kernel includes
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
-#include <zephyr/sys/hash_map.h>
 #include <zephyr/random/rand32.h>
 
 // BLE includes
@@ -15,18 +14,13 @@
 
 #include <dm.h>
 
+#include <peer.h>
+
 struct adv_mfg_data {
 	uint16_t company_code;	    /* Company Identifier Code. */
 	uint32_t support_dm_code;   /* To identify the device that supports distance measurement. */
 	uint32_t rng_seed;          /* Random seed used for generating hopping patterns. */
 } __packed;
-
-struct peer {
-    uint32_t rng_seed;
-    bool filter_set;
-};
-
-SYS_HASHMAP_DEFINE_STATIC(peer_map);
 
 // TODO add log level kconfig
 LOG_MODULE_REGISTER(scan, LOG_LEVEL_DBG);
@@ -60,23 +54,12 @@ static void scan_filter_match(struct bt_scan_device_info *device_info,
         * value for the random seed.
         */
 
-    uint64_t *peer_map_val;
-    if(sys_hashmap_get(&peer_map, addr_int, peer_map_val)) {
-        req.rng_seed = *(uint32_t *)peer_map_val;
-    }
-    else {
-        return;
-    }
+    struct peer *p = get_peer(addr_int);
 
+    req.rng_seed = p->rng_seed;
     req.start_delay_us = 0;
-    req.extra_window_time_us = 0;
+    req.extra_window_time_us = 100;
     int err = dm_request_add(&req);
-    if (err) {
-        LOG_ERR("Failed to add ranging request (err %d)\n", err);
-    }
-    else {
-        LOG_INF("Added ranging request");
-    }
 }
 
 bool validate_ndt_manufacturer_data(uint8_t *data, uint8_t data_len) {
@@ -93,21 +76,17 @@ bool validate_ndt_manufacturer_data(uint8_t *data, uint8_t data_len) {
     return false;
 }
 
-static void set_filter_uuid(uint8_t *uuid_128) {
+static void set_filter_uuid(struct bt_uuid_128 *uuid) {
     LOG_INF("Adding filter");
+
     int err;
-
-    struct bt_uuid_128 uuid;
-    uuid.uuid.type = BT_UUID_TYPE_128;
-    memcpy(uuid.val, uuid_128, 16);
-
     err = bt_scan_stop();
     if (err) {
         LOG_ERR("Scanning failed to stop (err %d)\n", err);
         return err;
     }
 
-	err = bt_scan_filter_add(BT_SCAN_FILTER_TYPE_UUID, &uuid);
+	err = bt_scan_filter_add(BT_SCAN_FILTER_TYPE_UUID, uuid);
 	if (err) {
 		LOG_ERR("Scanning filters cannot be set (err %d)\n", err);
 		return err;
@@ -127,41 +106,29 @@ static void set_filter_uuid(uint8_t *uuid_128) {
 }
 
 static bool ndt_supported(struct bt_data *data, void *user_data) {
+    int err;
     volatile uint64_t addr = *(uint64_t *)user_data;
     switch(data->type) {
         case BT_DATA_MANUFACTURER_DATA:
-            // If the manufacturer data is valid and the peer is not already in the peer map:
             struct adv_mfg_data mfg_data = *(struct adv_mfg_data *)data->data;
             if (validate_ndt_manufacturer_data(data->data, data->data_len)) {
-                if (!sys_hashmap_contains_key(&peer_map, addr)) {
-                    // Add the peer to the peer map where key is addr and value is rng_seed
-                    struct peer *peer = k_malloc(sizeof(struct peer));
-                    memset(peer, 0, sizeof(struct peer));
-
-                    peer->rng_seed = mfg_data.rng_seed;
-                    peer->filter_set = false;
-
-                    int err = sys_hashmap_insert(&peer_map, addr, peer, NULL);
-                    if (err < 0) {
-                        LOG_ERR("Failed to insert peer into peer map (err %d)\n", err);
-                    }
+                err = create_peer(addr, mfg_data.rng_seed);
+                if (err) {
+                    LOG_ERR("Failed to create peer (err %d)\n", err);
                 }
-            }
-            else {
-                LOG_INF("Not adding peer to peer map");
             }
             break;
         case BT_DATA_UUID128_ALL:
-            uint64_t peer_map_val;
-            if (sys_hashmap_get(&peer_map, addr, peer_map_val)) {
-                // Reinterpret the peer_map_val as a pointer to a peer struct
-                struct peer *peer_temp_p = (struct peer *)peer_map_val;
+            struct bt_uuid_128 uuid;
 
-                struct peer peer_temp = *peer_temp_p;
+            memcpy(uuid.val, data->data, BT_UUID_SIZE_128);
+            uuid.uuid.type = BT_UUID_TYPE_128;
 
-                peer_temp.filter_set = true;
-                set_filter_uuid(data->data);
-            }
+            set_filter_uuid(&uuid);
+            err = uuid_set_peer(addr, uuid);
+            if (err) {
+                LOG_ERR("Failed to set peer uuid (err %d)\n", err);
+            } 
             break;
         default:
             return true;

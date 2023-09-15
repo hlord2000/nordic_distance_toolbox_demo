@@ -40,11 +40,11 @@ void display(void *p1, void *p2, void *p3)
 	lv_task_handler();
 	display_blanking_off(display_dev);
 
-    char dist_str[64] = "Distance: n/a cm";
+    char dist_str[64] = "Distance: n/a m";
 
     while (true) {
         if (data != NULL) {
-            snprintf(dist_str, 64, "Distance: %.2f cm", data->distance);
+            snprintf(dist_str, 64, "Distance: %.2f m", data->distance);
         }
         lv_label_set_text(hello_world_label, dist_str);
         lv_task_handler();

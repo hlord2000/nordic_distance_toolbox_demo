@@ -15,6 +15,7 @@ include_directories(src/inc)
 target_sources(app PRIVATE
   src/main.c
   src/scan.c
+  src/peer.c
   src/display.c
   )
 # NORDIC SDK APP END
