@@ -24,7 +24,3 @@
 	};
 
 };
-
-&i2c0 {
-	zephyr,concat-buf-size = <1024>;	
-};

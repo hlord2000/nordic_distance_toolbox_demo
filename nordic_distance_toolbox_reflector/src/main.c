@@ -1,6 +1,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/drivers/pwm.h>
+#include <zephyr/sys/hash_function.h>
 
 #include <zephyr/bluetooth/bluetooth.h>
 
@@ -36,6 +37,37 @@ void set_led_color(uint32_t rgba_color) {
 	pwm_set_dt(&green_pwm_led, period, green_duty);
 	pwm_set_dt(&blue_pwm_led, period, blue_duty);
 }
+
+static uint32_t hash_to_color(uint32_t color_hash) {
+	uint8_t red = (color_hash >> 24) & 0xFF;
+	uint8_t green = (color_hash >> 16) & 0xFF;
+	uint8_t blue = (color_hash >> 8) & 0xFF;
+	uint8_t alpha = 0xFF;
+
+	if (red > 120 && green > 120 && blue > 120) {
+        red -= 50; green -= 50; blue -= 50; // Reduce brightness
+    } else if (red < 55 && green < 55 && blue < 55) {
+        red += 50; green += 50; blue += 50; // Increase brightness
+    }
+	
+	return (red << 24) | (green << 16) | (blue << 8) | alpha;
+}
+
+static void set_color_by_dist(int32_t dist) {
+
+
+	// Get my address and convert to color:
+	const char addr_local_str[BT_ADDR_LE_STR_LEN];
+	bt_addr_le_t addr_local = {0};
+	size_t count = 1;
+
+	bt_id_get(&addr_local, &count);
+	bt_addr_le_to_str(&addr_local, addr_local_str, sizeof(addr_local_str));
+
+	uint32_t color_hash = sys_hash32_murmur3(addr_local_str, 17);
+	color_hash = hash_to_color(color_hash);
+	set_led_color(color_hash);
+}
 #endif
 
 void data_ready(struct dm_result *result)
@@ -48,6 +80,7 @@ void data_ready(struct dm_result *result)
 	char addr[BT_ADDR_LE_STR_LEN];
 
 	bt_addr_le_to_str(&result->bt_addr, addr, sizeof(addr));
+	// Convert bt_addr to uint64_t
 
 	LOG_INF("Measurement result:\n");
 	LOG_INF("Addr: %s\n", addr);
@@ -61,8 +94,7 @@ void data_ready(struct dm_result *result)
 		result->dist_estimates.mcpd.best);
 	// Convert the "best" estimate to a color between 0-255
 #ifdef CONFIG_BOARD_THINGY53_NRF5340_CPUAPP
-	uint8_t color = 255 - ((result->dist_estimates.mcpd.best / 10) * 255);
-	set_led_color((0xFF00FF << 8) | color);
+	set_color_by_dist(0);
 #endif
 }
 

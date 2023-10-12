@@ -8,6 +8,7 @@
 struct peer {
     uint32_t rng_seed;
     uint64_t addr_int;
+    uint32_t color;
     struct bt_uuid_128 uuid;
     bool filter_set;
     bool is_active;

@@ -61,7 +61,7 @@ static void adv_scanned_cb(struct bt_le_ext_adv *adv, struct bt_le_ext_adv_scann
 
     bt_addr_le_copy(&req.bt_addr, info->addr);
     req.role = DM_ROLE_REFLECTOR;
-    req.ranging_mode = DM_RANGING_MODE_MCPD;
+    req.ranging_mode = DM_RANGING_MODE_RTT;
 
     /* We need to make sure that we only initiate a ranging to a single peer.
         * A scan response from this device can be received by multiple peers which can
@@ -73,9 +73,10 @@ static void adv_scanned_cb(struct bt_le_ext_adv *adv, struct bt_le_ext_adv_scann
         * This means that the initiator and the reflector need to set the same value
         * for the random seed.
         */
+    bt_addr_le_copy(&req.bt_addr, info->addr);
     req.rng_seed = mfg_data.rng_seed;
-    req.start_delay_us = 0;
-    req.extra_window_time_us = 250;
+    req.start_delay_us = 100;
+    req.extra_window_time_us = 500;
 
     dm_request_add(&req);
 }

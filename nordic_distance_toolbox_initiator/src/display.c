@@ -33,6 +33,7 @@ void display(void *p1, void *p2, void *p3)
         LOG_ERR("Device not ready, aborting test");
 		return;
 	}
+
     hello_world_label = lv_label_create(lv_scr_act());
     lv_label_set_text(hello_world_label, "Hello world!");
 	lv_obj_align(hello_world_label, LV_ALIGN_CENTER, 0, 0);

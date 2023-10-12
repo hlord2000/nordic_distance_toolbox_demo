@@ -42,7 +42,7 @@ static void scan_filter_match(struct bt_scan_device_info *device_info,
 
     struct dm_request req;
     req.role = DM_ROLE_INITIATOR;
-    req.ranging_mode = DM_RANGING_MODE_MCPD;
+    req.ranging_mode = DM_RANGING_MODE_RTT;
     /* We need to make sure that we only initiate a ranging to a single peer.
         * A scan response that is received by this device can be received by
         * multiple other devices which can all start a ranging at the same time
@@ -56,9 +56,10 @@ static void scan_filter_match(struct bt_scan_device_info *device_info,
 
     struct peer *p = get_peer(addr_int);
 
+    bt_addr_le_copy(&req.bt_addr, device_info->recv_info->addr);
     req.rng_seed = p->rng_seed;
-    req.start_delay_us = 0;
-    req.extra_window_time_us = 100;
+    req.start_delay_us = 100;
+    req.extra_window_time_us = 0;
     int err = dm_request_add(&req);
 }
 
@@ -124,11 +125,14 @@ static bool ndt_supported(struct bt_data *data, void *user_data) {
             memcpy(uuid.val, data->data, BT_UUID_SIZE_128);
             uuid.uuid.type = BT_UUID_TYPE_128;
 
-            set_filter_uuid(&uuid);
             err = uuid_set_peer(addr, uuid);
             if (err) {
                 LOG_ERR("Failed to set peer uuid (err %d)\n", err);
+                LOG_ERR("UUID: %s", bt_uuid_str(&uuid));
             } 
+            else {
+                set_filter_uuid(&uuid);
+            }
             break;
         default:
             return true;

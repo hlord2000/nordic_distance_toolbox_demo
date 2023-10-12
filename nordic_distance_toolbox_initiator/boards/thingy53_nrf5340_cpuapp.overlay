@@ -9,6 +9,7 @@
  / {
      chosen {
          /delete-property/ zephyr,ipc_shm;
+         zephyr,display = &ssd1306_ssd1306_128x64;
      };
  
      reserved-memory {
@@ -60,7 +61,7 @@
          };
  };
 
- &i2c0 {
+ arduino_i2c: &i2c0 {
 	compatible = "nordic,nrf-twim";
 	status = "okay";
 	clock-frequency = <I2C_BITRATE_STANDARD>;
@@ -69,6 +70,20 @@
 	pinctrl-1 = <&i2c0_sleep>;
 	pinctrl-names = "default", "sleep";
 	zephyr,concat-buf-size = <1024>;	
+
+    ssd1306_ssd1306_128x64: ssd1306@3c {
+		compatible = "solomon,ssd1306fb";
+		reg = <0x3c>;
+		width = <128>;
+		height = <64>;
+		segment-offset = <0>;
+		page-offset = <0>;
+		display-offset = <0>;
+		multiplex-ratio = <63>;
+		segment-remap;
+		com-invdir;
+		prechargep = <0x22>;
+	};
 };
 
 &pinctrl {
