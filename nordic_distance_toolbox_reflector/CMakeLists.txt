@@ -14,6 +14,7 @@ include_directories(src/inc)
 target_sources(app PRIVATE
   src/main.c
   src/advertise.c
+  src/color.c
   )
 # NORDIC SDK APP END
 

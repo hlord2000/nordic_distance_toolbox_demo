@@ -8,6 +8,7 @@
 
 #include <dm.h>
 
+#include <color.h>
 #include <scan.h>
 #include <messages.h>
 
@@ -41,39 +42,17 @@ void set_led_color(uint32_t rgba_color) {
 	pwm_set_dt(&green_pwm_led, period, green_duty);
 	pwm_set_dt(&blue_pwm_led, period, blue_duty);
 }
-
-static uint32_t hash_to_color(uint32_t color_hash) {
-	uint8_t red = (color_hash >> 24) & 0xFF;
-	uint8_t green = (color_hash >> 16) & 0xFF;
-	uint8_t blue = (color_hash >> 8) & 0xFF;
-	uint8_t alpha = 0xFF;
-
-	if (red > 120 && green > 120 && blue > 120) {
-        red -= 50; green -= 50; blue -= 50; // Reduce brightness
-    } else if (red < 55 && green < 55 && blue < 55) {
-        red += 50; green += 50; blue += 50; // Increase brightness
-    }
-	
-	return (red << 24) | (green << 16) | (blue << 8) | alpha;
-}
-
-static void set_color_by_dist(char *addr, size_t addr_len) {
-	// Get my address and convert to color:
-	const char addr_local_str[BT_ADDR_LE_STR_LEN];
-	memcpy(addr_local_str, addr, 17);
-
-	LOG_INF("Input: %s", addr_local_str);
-	uint32_t color_hash = sys_hash32_murmur3(addr_local_str, 17);
-	LOG_INF("Hash: %x", color_hash);
-	uint32_t color = hash_to_color(color_hash);
-	LOG_INF("Color: %x", color);
-	set_led_color(color);
-}
 #endif
 
 void data_ready(struct dm_result *result)
 {
 	if (!result) {
+		return;
+	}
+
+	if (result->quality == DM_QUALITY_CRC_FAIL) {
+		LOG_INF("Quality: %d", result->quality);
+		LOG_INF("Poor quality measurement, not publishing");
 		return;
 	}
 
@@ -83,17 +62,33 @@ void data_ready(struct dm_result *result)
 	bt_addr_le_to_str(&result->bt_addr, addr, sizeof(addr));
 
 	struct dm_data dm_data = {0};
+	#ifdef CONFIG_RTT_DISTANCE
 	dm_data.distance = result->dist_estimates.rtt.rtt;
+	#endif
+
+	#ifdef CONFIG_MCPD_DISTANCE
+	dm_data.distance = result->dist_estimates.mcpd.best;
+	#endif
 	memcpy(dm_data.addr, addr, sizeof(addr));
-	
-	set_color_by_dist(addr, sizeof(addr));
+
+	// Get my address and convert to color:
+
+	set_led_color(addr_to_color(addr, 17));
 
 	LOG_INF("\nMeasurement result:\n");
 	LOG_INF("\tAddr: %s\n", addr);
 	LOG_INF("\tQuality: %s\n", quality[result->quality]);
-
 	LOG_INF("\tDistance estimates: ");
-	LOG_INF("rtt: %.2f m, ", result->dist_estimates.rtt.rtt);
+	#ifdef CONFIG_RTT_DISTANCE
+	LOG_INF("rtt: %.2f m", result->dist_estimates.rtt.rtt);
+	#endif
+	#ifdef CONFIG_MCPD_DISTANCE
+	LOG_INF("mcpd: %.2f m", result->dist_estimates.mcpd.best);
+	#endif
+	dm_data.distance -= CONFIG_DM_DISTANCE_OFFSET_CM / 100.0;
+	if (dm_data.distance < 0) {
+		dm_data.distance = 0;
+	}
 	zbus_chan_pub(&dm_chan, &dm_data, K_MSEC(500));
 }
 
@@ -126,10 +121,4 @@ int main(void)
 		LOG_ERR("Distance measurement failed to start (err %d)\n", err);
 	}
 	LOG_INF("Distance measurement initialized\n");
-
-	while (true) {
-		//LOG_INF("Keep on truckin...");
-		k_sleep(K_MSEC(5000));
-	}
-
 }

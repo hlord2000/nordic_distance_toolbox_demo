@@ -34,8 +34,8 @@ static struct adv_mfg_data mfg_data;
 
 struct bt_le_adv_param adv_param_noconn =
 	BT_LE_ADV_PARAM_INIT(BT_LE_ADV_OPT_USE_IDENTITY |
-			     BT_LE_ADV_OPT_SCANNABLE |
-			     BT_LE_ADV_OPT_NOTIFY_SCAN_REQ,
+				BT_LE_ADV_OPT_SCANNABLE |
+				BT_LE_ADV_OPT_NOTIFY_SCAN_REQ,
 				 BT_GAP_ADV_FAST_INT_MIN_1,
 				 BT_GAP_ADV_FAST_INT_MAX_1,
 			     NULL);
@@ -61,7 +61,13 @@ static void adv_scanned_cb(struct bt_le_ext_adv *adv, struct bt_le_ext_adv_scann
 
     bt_addr_le_copy(&req.bt_addr, info->addr);
     req.role = DM_ROLE_REFLECTOR;
-    req.ranging_mode = DM_RANGING_MODE_RTT;
+	#ifdef CONFIG_MCPD_DISTANCE
+    req.ranging_mode = DM_RANGING_MODE_MCPD;
+	#endif
+
+	#ifdef CONFIG_RTT_DISTANCE
+	req.ranging_mode = DM_RANGING_MODE_RTT;
+	#endif
 
     /* We need to make sure that we only initiate a ranging to a single peer.
         * A scan response from this device can be received by multiple peers which can
@@ -75,8 +81,8 @@ static void adv_scanned_cb(struct bt_le_ext_adv *adv, struct bt_le_ext_adv_scann
         */
     bt_addr_le_copy(&req.bt_addr, info->addr);
     req.rng_seed = mfg_data.rng_seed;
-    req.start_delay_us = 100;
-    req.extra_window_time_us = 500;
+    req.start_delay_us = 0;
+    req.extra_window_time_us = 0;
 
     dm_request_add(&req);
 }

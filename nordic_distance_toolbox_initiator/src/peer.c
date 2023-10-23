@@ -1,4 +1,6 @@
 #include <peer.h>
+#include <string.h>
+#include <stddef.h>
 #include <zephyr/kernel.h>
 
 #define NUM_PEERS CONFIG_BT_SCAN_UUID_CNT
@@ -9,7 +11,7 @@ int create_peer(uint64_t addr_int, uint32_t rng_seed) {
     for (int i = 0; i < NUM_PEERS; i++) {
         if (peer_array[i].is_active == false) {
             peer_array[i].addr_int = addr_int;
-
+            peer_array[i].timestamp = 0;
             peer_array[i].rng_seed = rng_seed;
 
             return 0;

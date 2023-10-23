@@ -55,7 +55,7 @@
  &gpio_fwd {
      compatible = "nordic,nrf-gpio-forwarder";
      dm-gpio-if {
-         gpios = <&gpio0 26 0>,
-             <&gpio0 27 0>;
+         gpios = <&gpio0 11 0>,
+             <&gpio0 12 0>;
          };
  };

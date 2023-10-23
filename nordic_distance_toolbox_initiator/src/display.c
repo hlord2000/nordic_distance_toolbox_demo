@@ -24,7 +24,6 @@ ZBUS_LISTENER_DEFINE(dm_listener, dm_zbus_handler);
 void display(void *p1, void *p2, void *p3)
 {
     const struct device *display_dev;
-	lv_obj_t *hello_world_label;
 
 	display_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
     int err = device_is_ready(display_dev);
@@ -34,22 +33,47 @@ void display(void *p1, void *p2, void *p3)
 		return;
 	}
 
-    hello_world_label = lv_label_create(lv_scr_act());
-    lv_label_set_text(hello_world_label, "Hello world!");
-	lv_obj_align(hello_world_label, LV_ALIGN_CENTER, 0, 0);
+    LV_IMG_DECLARE(logo);
+
+    lv_obj_t *logo_img = lv_img_create(lv_scr_act());
+    lv_img_set_src(logo_img, &logo);
+    lv_obj_align(logo_img, LV_ALIGN_CENTER, 0, 0);
+
+    lv_obj_t *title_label = lv_label_create(lv_scr_act());
+    lv_label_set_text(title_label, "Distance Toolbox");
+    lv_obj_align(title_label, LV_ALIGN_BOTTOM_MID, 0, 0);
+	lv_task_handler();
+
+    k_msleep(5000);
+
+    lv_obj_align(logo_img, LV_ALIGN_TOP_LEFT, 0, 0);
+    lv_img_set_zoom(logo_img, 256);
+
+    lv_obj_t *ranging_label = lv_label_create(lv_scr_act());
+    #ifdef CONFIG_MCPD_DISTANCE
+    lv_label_set_text(ranging_label, "MCPD");
+    #endif
+
+    #ifdef CONFIG_RTT_DISTANCE
+    lv_label_set_text(ranging_label, "RTT");
+    #endif
+    lv_obj_align(ranging_label, LV_ALIGN_TOP_RIGHT, 0, 0);
+
+    lv_obj_t *distance_label = lv_label_create(lv_scr_act());
+	lv_obj_align(distance_label, LV_ALIGN_CENTER, 0, 0);
 
 	lv_task_handler();
 	display_blanking_off(display_dev);
 
-    char dist_str[64] = "Distance: n/a m";
+    char dist_str[64] = "n/a m";
 
     while (true) {
         if (data != NULL) {
-            snprintf(dist_str, 64, "Distance: %.2f m", data->distance);
+            snprintf(dist_str, 64, "%.2f m", data->distance);
         }
-        lv_label_set_text(hello_world_label, dist_str);
+        lv_label_set_text(distance_label, dist_str);
         lv_task_handler();
-        k_msleep(1000);
+        k_msleep(100);
     }
 }
 

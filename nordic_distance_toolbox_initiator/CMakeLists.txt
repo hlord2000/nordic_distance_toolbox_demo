@@ -17,6 +17,8 @@ target_sources(app PRIVATE
   src/scan.c
   src/peer.c
   src/display.c
+  src/logo.c
+  src/color.c
   )
 # NORDIC SDK APP END
 

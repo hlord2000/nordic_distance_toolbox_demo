@@ -25,9 +25,6 @@ struct adv_mfg_data {
 // TODO add log level kconfig
 LOG_MODULE_REGISTER(scan, LOG_LEVEL_DBG);
 
-// TODO: Add chaging RBG LED color based on ranging target based on RNG
-// change ranging with button press
-
 static void scan_filter_match(struct bt_scan_device_info *device_info,
                        struct bt_scan_filter_match *filter_match,
                        bool connectable)
@@ -40,27 +37,50 @@ static void scan_filter_match(struct bt_scan_device_info *device_info,
         addr_int += addr[i];
     }
 
+    struct peer *p = get_peer(addr_int);
+    if (p == NULL) {
+        return;
+    }
+
+    uint32_t current_time = k_uptime_get();
+    if (p->timestamp + CONFIG_DM_PEER_DELAY_MS < current_time) {
+        p->timestamp = current_time;
+    }
+    else {
+        return;
+    }
+
     struct dm_request req;
     req.role = DM_ROLE_INITIATOR;
-    req.ranging_mode = DM_RANGING_MODE_RTT;
-    /* We need to make sure that we only initiate a ranging to a single peer.
-        * A scan response that is received by this device can be received by
-        * multiple other devices which can all start a ranging at the same time
-        * as a consequence. To prevent this, we need to make sure that we set a
-        * per-peer random as the random seed. This helps the ranging library to
-        * avoid interference from other devices trying to range at the same time.
-        *
-        * This means that the initiator and the reflector need to set the same
-        * value for the random seed.
-        */
+    #ifdef CONFIG_MCPD_DISTANCE
+    req.ranging_mode = DM_RANGING_MODE_MCPD;
+    #endif
 
-    struct peer *p = get_peer(addr_int);
+    #ifdef CONFIG_RTT_DISTANCE
+    req.ranging_mode = DM_RANGING_MODE_RTT;
+    #endif
+   /* We need to make sure that we only initiate a ranging to a single peer.
+    * A scan response that is received by this device can be received by
+    * multiple other devices which can all start a ranging at the same time
+    * as a consequence. To prevent this, we need to make sure that we set a
+    * per-peer random as the random seed. This helps the ranging library to
+    * avoid interference from other devices trying to range at the same time.
+    *
+    * This means that the initiator and the reflector need to set the same
+    * value for the random seed.
+    */
 
     bt_addr_le_copy(&req.bt_addr, device_info->recv_info->addr);
+
     req.rng_seed = p->rng_seed;
-    req.start_delay_us = 100;
+    req.start_delay_us = 0;
     req.extra_window_time_us = 0;
+
     int err = dm_request_add(&req);
+    if (err) {
+        LOG_ERR("Failed to add request (err %d)\n", err);
+    }
+    LOG_INF("Added request\n");
 }
 
 bool validate_ndt_manufacturer_data(uint8_t *data, uint8_t data_len) {
