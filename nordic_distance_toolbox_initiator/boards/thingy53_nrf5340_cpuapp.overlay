@@ -6,11 +6,22 @@
 
  #include <zephyr/dt-bindings/ipc_service/static_vrings.h>
 
+ &spi4 {
+    status = "disabled";
+ };
+
  / {
      chosen {
          /delete-property/ zephyr,ipc_shm;
          zephyr,display = &ssd1306_ssd1306_128x64;
      };
+
+	debug_gpio: debug-gpio {
+		compatible = "gpio-leds";
+		dm_ranging_complete: dm-ranging-complete {
+			gpios = <&gpio0 10 GPIO_ACTIVE_LOW>;
+		};
+	};
  
      reserved-memory {
          /delete-node/ memory@20070000;

@@ -1,6 +1,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/hash_function.h>
+#include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/pwm.h>
 #include <zephyr/zbus/zbus.h>
 
@@ -23,6 +24,8 @@ static const struct pwm_dt_spec green_pwm_led =
 	PWM_DT_SPEC_GET(DT_ALIAS(pwm_led1));
 static const struct pwm_dt_spec blue_pwm_led =
 	PWM_DT_SPEC_GET(DT_ALIAS(pwm_led2));
+static const struct gpio_dt_spec dm_ranging_complete_dev =
+	GPIO_DT_SPEC_GET(DT_NODELABEL(dm_ranging_complete), gpios);
 
 #define PWM_PERIOD_USEC 2000
 
@@ -46,13 +49,16 @@ void set_led_color(uint32_t rgba_color) {
 
 void data_ready(struct dm_result *result)
 {
+	gpio_pin_set_dt(&dm_ranging_complete_dev, 1);
 	if (!result) {
 		return;
+		gpio_pin_set_dt(&dm_ranging_complete_dev, 0);
 	}
 
 	if (result->quality == DM_QUALITY_CRC_FAIL) {
 		LOG_INF("Quality: %d", result->quality);
 		LOG_INF("Poor quality measurement, not publishing");
+		gpio_pin_set_dt(&dm_ranging_complete_dev, 0);
 		return;
 	}
 
@@ -74,7 +80,7 @@ void data_ready(struct dm_result *result)
 	// Get my address and convert to color:
 
 	set_led_color(addr_to_color(addr, 17));
-
+	#if 0
 	LOG_INF("\nMeasurement result:\n");
 	LOG_INF("\tAddr: %s\n", addr);
 	LOG_INF("\tQuality: %s\n", quality[result->quality]);
@@ -85,10 +91,12 @@ void data_ready(struct dm_result *result)
 	#ifdef CONFIG_MCPD_DISTANCE
 	LOG_INF("mcpd: %.2f m", result->dist_estimates.mcpd.best);
 	#endif
+	#endif
 	dm_data.distance -= CONFIG_DM_DISTANCE_OFFSET_CM / 100.0;
 	if (dm_data.distance < 0) {
 		dm_data.distance = 0;
 	}
+	gpio_pin_set_dt(&dm_ranging_complete_dev, 0);
 	zbus_chan_pub(&dm_chan, &dm_data, K_MSEC(500));
 }
 
@@ -99,6 +107,7 @@ static struct dm_cb dm_cb = {
 
 int main(void)
 {
+	gpio_pin_configure_dt(&dm_ranging_complete_dev, GPIO_OUTPUT_LOW);
 	int err;
 
 	struct dm_init_param init_param;

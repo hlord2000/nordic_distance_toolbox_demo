@@ -35,16 +35,18 @@ static struct adv_mfg_data mfg_data;
 struct bt_le_adv_param adv_param_noconn =
 	BT_LE_ADV_PARAM_INIT(BT_LE_ADV_OPT_USE_IDENTITY |
 				BT_LE_ADV_OPT_SCANNABLE |
-				BT_LE_ADV_OPT_NOTIFY_SCAN_REQ,
-				 BT_GAP_ADV_FAST_INT_MIN_1,
-				 BT_GAP_ADV_FAST_INT_MAX_1,
-			     NULL);
+				BT_LE_ADV_OPT_NOTIFY_SCAN_REQ |
+				BT_LE_ADV_OPT_CONNECTABLE,
+				BT_GAP_ADV_FAST_INT_MIN_2,
+				BT_GAP_ADV_FAST_INT_MAX_2,
+				NULL);
 
 
 struct bt_le_adv_param *adv_param = &adv_param_noconn;
 
 static const struct bt_data ad[] = {
 	BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
+	BT_DATA(BT_DATA_MANUFACTURER_DATA, (unsigned char *)&mfg_data, sizeof(mfg_data)),
 	BT_DATA(BT_DATA_NAME_COMPLETE, DEVICE_NAME, DEVICE_NAME_LEN),
 };
 
@@ -87,8 +89,27 @@ static void adv_scanned_cb(struct bt_le_ext_adv *adv, struct bt_le_ext_adv_scann
     dm_request_add(&req);
 }
 
+static void connected(struct bt_conn *conn, uint8_t err) {
+	char addr[BT_ADDR_LE_STR_LEN];
+
+	if (err) {
+		LOG_ERR("Connection failed (err %u)\n", err);
+		return;
+	}
+
+	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
+	LOG_INF("Connected %s\n", addr);
+}
+
+static void disconnected(struct bt_conn *conn, uint8_t reason) {
+	LOG_INF("Disconnected (reason %u)", reason);
+}
+
+BT_CONN_CB_DEFINE(conn_callbacks) = {
+	.connected = connected,
+	.disconnected = disconnected, };
 const static struct bt_le_ext_adv_cb adv_cb = {
-	.scanned = adv_scanned_cb,
+	.scanned = adv_scanned_cb
 };
 
 
@@ -111,31 +132,36 @@ int advertise_init(void) {
     if (adv) {
 		err = bt_le_ext_adv_stop(adv);
 		if (err) {
-			printk("Failed to stop extended advertising  (err %d)\n", err);
+			LOG_ERR("Failed to stop extended advertising  (err %d)\n", err);
 			return err;
 		}
 			err = bt_le_ext_adv_delete(adv);
 		if (err) {
-			printk("Failed to delete advertising set  (err %d)\n", err);
+			LOG_ERR("Failed to delete advertising set  (err %d)\n", err);
 			return err;
 		}
 	}
 
 	err = bt_le_ext_adv_create(adv_param, &adv_cb, &adv);
 	if (err) {
-		printk("Failed to create advertising set (err %d)\n", err);
+		LOG_ERR("Failed to create advertising set (err %d)\n", err);
 		return err;
 	}
 
 	err = bt_le_ext_adv_set_data(adv, ad, ARRAY_SIZE(ad), sd, ARRAY_SIZE(sd));
 	if (err) {
-		printk("Failed setting adv data (err %d)\n", err);
+		LOG_ERR("Failed setting adv data (err %d)\n", err);
 		return err;
+	}
+
+	err = bt_le_filter_accept_list_clear();
+	if (err) {
+		LOG_ERR("Failed to clear accept list (err %d)\n", err);
 	}
 
 	err = bt_le_ext_adv_start(adv, &ext_adv_start_param);
 	if (err) {
-		printk("Failed to start extended advertising  (err %d)\n", err);
+		LOG_ERR("Failed to start extended advertising  (err %d)\n", err);
 		return err;
 	}
 

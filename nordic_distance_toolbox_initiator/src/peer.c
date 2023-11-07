@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stddef.h>
 #include <zephyr/kernel.h>
+#include <zephyr/bluetooth/uuid.h>
 
 #define NUM_PEERS CONFIG_BT_SCAN_UUID_CNT
 
@@ -23,7 +24,7 @@ int create_peer(uint64_t addr_int, uint32_t rng_seed) {
 int uuid_set_peer(uint64_t addr_int, struct bt_uuid_128 uuid) {
     for (int i = 0; i < NUM_PEERS; i++) {
         if (peer_array[i].addr_int == addr_int) {
-
+            peer_array[i].uuid = uuid;
             memcpy(peer_array[i].uuid.val, uuid.val, BT_UUID_SIZE_128);
             peer_array[i].uuid.uuid.type = BT_UUID_TYPE_128;
 
@@ -44,10 +45,14 @@ int remove_peer(uint64_t addr_int) {
     return -ENOENT;
 }
 
-struct peer * get_peer(uint64_t addr_int) {
+struct peer * get_peer(struct bt_uuid_128 *uuid) {
+    int cmp;
     for (int i = 0; i < NUM_PEERS; i++) {
-        if (peer_array[i].is_active == true && peer_array[i].addr_int == addr_int) {
-            return &peer_array[i];
+        if (peer_array[i].is_active == true) {
+            cmp = strncmp(peer_array[i].uuid.val, uuid->val, BT_UUID_SIZE_128);
+            if (cmp == 0) {
+                return &peer_array[i];
+            }
         }
     }
     return NULL;

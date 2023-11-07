@@ -25,19 +25,34 @@ struct adv_mfg_data {
 // TODO add log level kconfig
 LOG_MODULE_REGISTER(scan, LOG_LEVEL_DBG);
 
+static uint64_t bt_addr_to_int(const bt_addr_le_t *addr) {
+    uint64_t addr_int = 0;
+    for (int i = 0; i < BT_ADDR_SIZE; i++) {
+        addr_int = addr_int << 8;
+        addr_int += addr->a.val[i];
+    }
+    return addr_int;
+}
+
 static void scan_filter_match(struct bt_scan_device_info *device_info,
                        struct bt_scan_filter_match *filter_match,
                        bool connectable)
 {
-    char addr[BT_ADDR_SIZE];
-    bt_addr_to_str(&device_info->recv_info->addr, addr, BT_ADDR_SIZE);
-    uint64_t addr_int = 0;
-    for (int i = 0; i < BT_ADDR_SIZE; i++) {
-        addr_int = addr_int << 8;
-        addr_int += addr[i];
+    uint64_t addr_int = bt_addr_to_int(&device_info->recv_info->addr);
+
+    if (!filter_match->uuid.match) {
+        return;
     }
 
-    struct peer *p = get_peer(addr_int);
+    static struct bt_uuid_128 *uuid;
+    if (filter_match->uuid.uuid[0]->type == 2) {
+        uuid = (struct bt_uuid_128 *)(filter_match->uuid.uuid[0]);
+    }
+    else {
+        return;
+    }
+
+    struct peer *p = get_peer(uuid);
     if (p == NULL) {
         return;
     }
@@ -80,7 +95,6 @@ static void scan_filter_match(struct bt_scan_device_info *device_info,
     if (err) {
         LOG_ERR("Failed to add request (err %d)\n", err);
     }
-    LOG_INF("Added request\n");
 }
 
 bool validate_ndt_manufacturer_data(uint8_t *data, uint8_t data_len) {
@@ -163,13 +177,7 @@ static bool ndt_supported(struct bt_data *data, void *user_data) {
 static void scan_filter_no_match(struct bt_scan_device_info *device_info,
                           bool connectable)
 {
-    char addr[BT_ADDR_SIZE];
-    bt_addr_to_str(&device_info->recv_info->addr, addr, BT_ADDR_SIZE);
-    uint64_t addr_int = 0;
-    for (int i = 0; i < BT_ADDR_SIZE; i++) {
-        addr_int = addr_int << 8;
-        addr_int += addr[i];
-    }
+    uint64_t addr_int = bt_addr_to_int(&device_info->recv_info->addr);
 
     switch (device_info->recv_info->adv_type) {
         case BT_GAP_ADV_TYPE_SCAN_RSP:

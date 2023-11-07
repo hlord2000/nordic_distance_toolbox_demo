@@ -2,7 +2,6 @@
 #define PEER_H__
 #include <stdint.h>
 #include <stdbool.h>
-
 #include <zephyr/bluetooth/uuid.h>
 
 struct peer {
@@ -15,7 +14,7 @@ struct peer {
     uint32_t timestamp;
 };
 
-struct peer *get_peer(uint64_t addr_int);
+struct peer * get_peer(struct bt_uuid_128 *uuid);
 
 int uuid_set_peer(uint64_t addr_int, struct bt_uuid_128 uuid);
 
