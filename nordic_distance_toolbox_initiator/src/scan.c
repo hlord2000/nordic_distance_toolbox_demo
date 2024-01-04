@@ -67,13 +67,17 @@ static void scan_filter_match(struct bt_scan_device_info *device_info,
 
     struct dm_request req;
     req.role = DM_ROLE_INITIATOR;
-    #ifdef CONFIG_MCPD_DISTANCE
-    req.ranging_mode = DM_RANGING_MODE_MCPD;
-    #endif
 
-    #ifdef CONFIG_RTT_DISTANCE
-    req.ranging_mode = DM_RANGING_MODE_RTT;
-    #endif
+    if (p->ranging_mode == RANGING_MODE_MCPD) {
+        req.ranging_mode = DM_RANGING_MODE_MCPD;
+    }
+    else if (p->ranging_mode == RANGING_MODE_RTT) {
+        req.ranging_mode = DM_RANGING_MODE_RTT;
+    }
+    else {
+        return;
+    }
+
    /* We need to make sure that we only initiate a ranging to a single peer.
     * A scan response that is received by this device can be received by
     * multiple other devices which can all start a ranging at the same time
@@ -99,13 +103,15 @@ static void scan_filter_match(struct bt_scan_device_info *device_info,
 
 bool validate_ndt_manufacturer_data(uint8_t *data, uint8_t data_len) {
     struct adv_mfg_data *mfg_data;
-    if (data_len != sizeof(*mfg_data)) {
-        return false;
-    }
 
     mfg_data = (struct adv_mfg_data *)data;
 
-    if (mfg_data->support_dm_code == 0xD157A9CE) {
+
+    if (mfg_data->support_dm_code == 0x0D17A9CE) {
+        return true;
+    }
+
+    if (mfg_data->support_dm_code == 0x1D17A9CE) {
         return true;
     }
     return false;
@@ -147,7 +153,7 @@ static bool ndt_supported(struct bt_data *data, void *user_data) {
         case BT_DATA_MANUFACTURER_DATA:
             struct adv_mfg_data mfg_data = *(struct adv_mfg_data *)data->data;
             if (validate_ndt_manufacturer_data(data->data, data->data_len)) {
-                err = create_peer(addr, mfg_data.rng_seed);
+                err = create_peer(addr, mfg_data.rng_seed, mfg_data.support_dm_code);
                 if (err) {
                     LOG_ERR("Failed to create peer (err %d)\n", err);
                 }

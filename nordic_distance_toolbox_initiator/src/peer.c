@@ -8,12 +8,22 @@
 
 struct peer peer_array[NUM_PEERS] = {0};
 
-int create_peer(uint64_t addr_int, uint32_t rng_seed) {
+int create_peer(uint64_t addr_int, uint32_t rng_seed, uint32_t support_dm_code) {
     for (int i = 0; i < NUM_PEERS; i++) {
         if (peer_array[i].is_active == false) {
             peer_array[i].addr_int = addr_int;
             peer_array[i].timestamp = 0;
             peer_array[i].rng_seed = rng_seed;
+
+            if (support_dm_code == SUPPORT_MCPD_CODE) {
+                peer_array[i].ranging_mode = RANGING_MODE_MCPD;
+            }
+            else if (support_dm_code == SUPPORT_RTT_CODE) {
+                peer_array[i].ranging_mode = RANGING_MODE_RTT;
+            }
+            else {
+                return -EINVAL;
+            }
 
             return 0;
         }

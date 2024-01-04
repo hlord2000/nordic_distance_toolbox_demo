@@ -20,7 +20,8 @@ LOG_MODULE_REGISTER(advertise, LOG_LEVEL_DBG);
 #define DEVICE_NAME_LEN         (sizeof(DEVICE_NAME) - 1)
 
 #define COMPANY_CODE 0x0059
-#define SUPPORT_DM_CODE 0xD157A9CE
+#define SUPPORT_MCPD_CODE 0x0D17A9CE
+#define SUPPORT_RTT_CODE 0x1D17A9CE
 
 static struct bt_le_ext_adv *adv;
 
@@ -124,7 +125,14 @@ int advertise_init(void) {
 	sd[1].type = BT_DATA_UUID128_ALL;
 
     mfg_data.company_code = COMPANY_CODE;
-    mfg_data.support_dm_code = SUPPORT_DM_CODE;
+	#ifdef CONFIG_MCPD_DISTANCE
+    mfg_data.support_dm_code = SUPPORT_MCPD_CODE;
+	#endif
+
+	#ifdef CONFIG_RTT_DISTANCE
+	mfg_data.support_dm_code = SUPPORT_RTT_CODE;
+	#endif
+
 	sys_csrand_get(&mfg_data.rng_seed, sizeof(mfg_data.rng_seed));
 
     struct bt_le_ext_adv_start_param ext_adv_start_param = {0};

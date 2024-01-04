@@ -3,4 +3,5 @@
 struct dm_data {
 	float distance;
 	char addr[BT_ADDR_LE_STR_LEN];
+	uint32_t ranging_method;
 };

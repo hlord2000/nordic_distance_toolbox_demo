@@ -1,8 +1,3 @@
-config MCPD_DISTANCE
-    bool "MCPD Distance"
-config RTT_DISTANCE
-    bool "RTT Distance"
-
 config INDICATOR_LED_SATURATION
     int "Indicator LED saturation in hundredths"
     default 90
@@ -14,7 +9,11 @@ config DM_PEER_DELAY_MS
     int "DM Peer Delay (ms)"
     default 1000
 
-config DM_DISTANCE_OFFSET_CM
+config DM_MCPD_DISTANCE_OFFSET_CM
+    int "DM Distance Offset (cm)"
+    default 0
+
+config DM_RTT_DISTANCE_OFFSET_CM
     int "DM Distance Offset (cm)"
     default 0
 

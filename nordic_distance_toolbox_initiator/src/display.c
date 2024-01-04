@@ -8,6 +8,8 @@
 
 #include <messages.h>
 
+#include <dm.h>
+
 
 LOG_MODULE_REGISTER(display, LOG_LEVEL_DBG);
 
@@ -50,13 +52,9 @@ void display(void *p1, void *p2, void *p3)
     lv_img_set_zoom(logo_img, 256);
 
     lv_obj_t *ranging_label = lv_label_create(lv_scr_act());
-    #ifdef CONFIG_MCPD_DISTANCE
-    lv_label_set_text(ranging_label, "MCPD");
-    #endif
 
-    #ifdef CONFIG_RTT_DISTANCE
-    lv_label_set_text(ranging_label, "RTT");
-    #endif
+    lv_label_set_text(ranging_label, "N/A");
+
     lv_obj_align(ranging_label, LV_ALIGN_TOP_RIGHT, 0, 0);
 
     lv_obj_t *distance_label = lv_label_create(lv_scr_act());
@@ -72,6 +70,15 @@ void display(void *p1, void *p2, void *p3)
             snprintf(dist_str, 64, "%.2f m", data->distance);
         }
         lv_label_set_text(distance_label, dist_str);
+
+        if (data->ranging_method == DM_RANGING_MODE_MCPD) {
+            lv_label_set_text(ranging_label, "MCPD");
+        }
+
+        if (data->ranging_method == DM_RANGING_MODE_RTT) {
+            lv_label_set_text(ranging_label, "RTT");
+        }
+
         lv_task_handler();
         k_msleep(100);
     }

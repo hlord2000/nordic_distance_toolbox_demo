@@ -68,34 +68,33 @@ void data_ready(struct dm_result *result)
 	bt_addr_le_to_str(&result->bt_addr, addr, sizeof(addr));
 
 	struct dm_data dm_data = {0};
-	#ifdef CONFIG_RTT_DISTANCE
-	dm_data.distance = result->dist_estimates.rtt.rtt;
-	#endif
 
-	#ifdef CONFIG_MCPD_DISTANCE
-	dm_data.distance = result->dist_estimates.mcpd.best;
-	#endif
+	if (result->ranging_mode == DM_RANGING_MODE_MCPD) {
+		dm_data.distance = result->dist_estimates.mcpd.best;
+		dm_data.ranging_method = DM_RANGING_MODE_MCPD;
+
+		dm_data.distance -= CONFIG_DM_MCPD_DISTANCE_OFFSET_CM / 100.0;
+		if (dm_data.distance < 0) {
+			dm_data.distance = 0;
+		}
+	}
+
+	if (result->ranging_mode == DM_RANGING_MODE_RTT) {
+		dm_data.distance = result->dist_estimates.rtt.rtt;
+		dm_data.ranging_method = DM_RANGING_MODE_RTT;
+
+		dm_data.distance -= CONFIG_DM_RTT_DISTANCE_OFFSET_CM / 100.0;
+		if (dm_data.distance < 0) {
+			dm_data.distance = 0;
+		}
+	}
+
 	memcpy(dm_data.addr, addr, sizeof(addr));
 
 	// Get my address and convert to color:
 
 	set_led_color(addr_to_color(addr, 17));
-	#if 0
-	LOG_INF("\nMeasurement result:\n");
-	LOG_INF("\tAddr: %s\n", addr);
-	LOG_INF("\tQuality: %s\n", quality[result->quality]);
-	LOG_INF("\tDistance estimates: ");
-	#ifdef CONFIG_RTT_DISTANCE
-	LOG_INF("rtt: %.2f m", result->dist_estimates.rtt.rtt);
-	#endif
-	#ifdef CONFIG_MCPD_DISTANCE
-	LOG_INF("mcpd: %.2f m", result->dist_estimates.mcpd.best);
-	#endif
-	#endif
-	dm_data.distance -= CONFIG_DM_DISTANCE_OFFSET_CM / 100.0;
-	if (dm_data.distance < 0) {
-		dm_data.distance = 0;
-	}
+
 	gpio_pin_set_dt(&dm_ranging_complete_dev, 0);
 	zbus_chan_pub(&dm_chan, &dm_data, K_MSEC(500));
 }
