@@ -9,6 +9,7 @@
 #include <zephyr/bluetooth/conn.h>
 #include <zephyr/bluetooth/uuid.h>
 #include <zephyr/bluetooth/gatt.h>
+#include <zephyr/input/input.h>
 #include <bluetooth/gatt_dm.h>
 #include <bluetooth/scan.h>
 
@@ -33,6 +34,24 @@ static uint64_t bt_addr_to_int(const bt_addr_le_t *addr) {
     }
     return addr_int;
 }
+
+#define MCPD 0
+#define RTT 1
+volatile int mode_set = MCPD;
+
+static void toggle_mode_set(struct input_event *evt) {
+    if (evt->value == 0) {
+        return;
+    }
+    if (mode_set == MCPD) {
+        mode_set = RTT;
+    }
+    else {
+        mode_set = MCPD;
+    }
+}
+
+INPUT_CALLBACK_DEFINE(NULL, toggle_mode_set);
 
 static void scan_filter_match(struct bt_scan_device_info *device_info,
                        struct bt_scan_filter_match *filter_match,
@@ -69,10 +88,20 @@ static void scan_filter_match(struct bt_scan_device_info *device_info,
     req.role = DM_ROLE_INITIATOR;
 
     if (p->ranging_mode == RANGING_MODE_MCPD) {
-        req.ranging_mode = DM_RANGING_MODE_MCPD;
+        if (mode_set == MCPD) {
+            req.ranging_mode = DM_RANGING_MODE_MCPD;
+        }
+        else {
+            return;
+        }
     }
     else if (p->ranging_mode == RANGING_MODE_RTT) {
-        req.ranging_mode = DM_RANGING_MODE_RTT;
+        if (mode_set == RTT) {
+            req.ranging_mode = DM_RANGING_MODE_RTT;
+        }
+        else {
+            return;
+        }
     }
     else {
         return;
