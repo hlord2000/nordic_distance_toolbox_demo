@@ -15,7 +15,9 @@
 
 LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 
+#ifdef CONFIG_DISTANCE_DISPLAY_OLED
 ZBUS_CHAN_DECLARE(dm_chan);
+#endif
 
 #ifdef CONFIG_BOARD_THINGY53_NRF5340_CPUAPP
 static const struct pwm_dt_spec red_pwm_led =
@@ -24,8 +26,6 @@ static const struct pwm_dt_spec green_pwm_led =
 	PWM_DT_SPEC_GET(DT_ALIAS(pwm_led1));
 static const struct pwm_dt_spec blue_pwm_led =
 	PWM_DT_SPEC_GET(DT_ALIAS(pwm_led2));
-static const struct gpio_dt_spec dm_ranging_complete_dev =
-	GPIO_DT_SPEC_GET(DT_NODELABEL(dm_ranging_complete), gpios);
 
 #define PWM_PERIOD_USEC 2000
 
@@ -49,16 +49,9 @@ void set_led_color(uint32_t rgba_color) {
 
 void data_ready(struct dm_result *result)
 {
-	gpio_pin_set_dt(&dm_ranging_complete_dev, 1);
-	if (!result) {
-		return;
-		gpio_pin_set_dt(&dm_ranging_complete_dev, 0);
-	}
-
 	if (result->quality == DM_QUALITY_CRC_FAIL) {
 		LOG_INF("Quality: %d", result->quality);
 		LOG_INF("Poor quality measurement, not publishing");
-		gpio_pin_set_dt(&dm_ranging_complete_dev, 0);
 		return;
 	}
 
@@ -93,10 +86,13 @@ void data_ready(struct dm_result *result)
 
 	// Get my address and convert to color:
 
+	#ifdef CONFIG_BOARD_THINGY53_NRF5340_CPUAPP
 	set_led_color(addr_to_color(addr, 17));
+	#endif
 
-	gpio_pin_set_dt(&dm_ranging_complete_dev, 0);
+	#ifdef CONFIG_DISTANCE_DISPLAY_OLED
 	zbus_chan_pub(&dm_chan, &dm_data, K_MSEC(500));
+	#endif
 }
 
 static struct dm_cb dm_cb = {
@@ -106,7 +102,6 @@ static struct dm_cb dm_cb = {
 
 int main(void)
 {
-	gpio_pin_configure_dt(&dm_ranging_complete_dev, GPIO_OUTPUT_LOW);
 	int err;
 
 	struct dm_init_param init_param;

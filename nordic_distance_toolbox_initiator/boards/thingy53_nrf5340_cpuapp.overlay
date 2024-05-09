@@ -13,16 +13,8 @@
  / {
      chosen {
          /delete-property/ zephyr,ipc_shm;
-         zephyr,display = &ssd1306_ssd1306_128x64;
      };
 
-	debug_gpio: debug-gpio {
-		compatible = "gpio-leds";
-		dm_ranging_complete: dm-ranging-complete {
-			gpios = <&gpio0 10 GPIO_ACTIVE_LOW>;
-		};
-	};
- 
      reserved-memory {
          /delete-node/ memory@20070000;
  
@@ -68,34 +60,9 @@
      compatible = "nordic,nrf-gpio-forwarder";
      dm-gpio-if {
          gpios = <&gpio0 11 0>,
-             <&gpio0 12 0>;
+                 <&gpio0 12 0>;
          };
  };
-
- arduino_i2c: &i2c0 {
-	compatible = "nordic,nrf-twim";
-	status = "okay";
-	clock-frequency = <I2C_BITRATE_STANDARD>;
-
-	pinctrl-0 = <&i2c0_default>;
-	pinctrl-1 = <&i2c0_sleep>;
-	pinctrl-names = "default", "sleep";
-	zephyr,concat-buf-size = <1024>;	
-
-    ssd1306_ssd1306_128x64: ssd1306@3d {
-		compatible = "solomon,ssd1306fb";
-		reg = <0x3d>;
-		width = <128>;
-		height = <64>;
-		segment-offset = <0>;
-		page-offset = <0>;
-		display-offset = <0>;
-		multiplex-ratio = <63>;
-		segment-remap;
-		com-invdir;
-		prechargep = <0x22>;
-	};
-};
 
 &pinctrl {
     i2c0_default: i2c0_default {

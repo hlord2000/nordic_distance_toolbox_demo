@@ -17,4 +17,20 @@ config DM_RTT_DISTANCE_OFFSET_CM
     int "DM Distance Offset (cm)"
     default 0
 
+config DISTANCE_DISPLAY_OLED
+    bool "Display distance on OLED"
+    imply I2C
+    select DISPLAY
+    imply LVGL
+    imply LV_MEM_CUSTOM
+    imply LV_MEM_CUSTOM
+    imply LV_USE_LOG
+    imply LV_USE_LABEL
+    imply LV_USE_BTN
+    imply LV_USE_ARC
+    imply LV_USE_IMG
+    imply LV_FONT_MONTSERRAT_14
+    imply LV_USE_THEME_DEFAULT
+    imply LV_THEME_DEFAULT_DARK
+
 source "Kconfig.zephyr"

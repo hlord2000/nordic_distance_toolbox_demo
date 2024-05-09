@@ -6,7 +6,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
-set(SHIELD ssd1306_128x64)
+#set(SHIELD ssd1306_128x64)
 project(nrf_dm)
 
 include_directories(src/inc)
@@ -16,10 +16,10 @@ target_sources(app PRIVATE
   src/main.c
   src/scan.c
   src/peer.c
-  src/display.c
-  src/logo.c
   src/color.c
-  )
+)
+
+target_sources_ifdef(CONFIG_DISTANCE_DISPLAY_OLED app PRIVATE src/display.c src/logo.c)
 # NORDIC SDK APP END
 
 zephyr_library_include_directories(${CMAKE_CURRENT_SOURCE_DIR})
