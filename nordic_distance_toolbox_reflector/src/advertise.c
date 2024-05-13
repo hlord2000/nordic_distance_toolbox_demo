@@ -10,7 +10,7 @@
 #include <zephyr/bluetooth/gatt.h>
 #include <bluetooth/gatt_dm.h>
 
-#include <zephyr/random/rand32.h>
+#include <zephyr/random/random.h>
 
 #include <dm.h>
 

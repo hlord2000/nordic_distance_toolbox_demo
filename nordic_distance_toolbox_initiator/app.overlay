@@ -14,7 +14,7 @@
 	dm_gpio {
 		compatible = "gpio-leds";
 		dm_ranging: dm-ranging {
-			gpios = <&gpio0 11 GPIO_ACTIVE_LOW>;
+			gpios = <&gpio0 14 GPIO_ACTIVE_LOW>;
 			label = "DM Ranging Pin";
 		};
 		dm_add_request: dm-add-request {

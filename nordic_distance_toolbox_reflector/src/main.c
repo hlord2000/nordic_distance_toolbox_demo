@@ -129,4 +129,8 @@ int main(void)
 	}
 	set_led_color(hash_to_color());
 #endif
+
+	while(true) {
+		k_sleep(K_FOREVER);
+	}
 }

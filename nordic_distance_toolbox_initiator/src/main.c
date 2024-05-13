@@ -93,6 +93,7 @@ void data_ready(struct dm_result *result)
 	#ifdef CONFIG_DISTANCE_DISPLAY_OLED
 	zbus_chan_pub(&dm_chan, &dm_data, K_MSEC(500));
 	#endif
+	LOG_INF("Distance: %f, Quality: %s", dm_data.distance, quality[result->quality]);
 }
 
 static struct dm_cb dm_cb = {
